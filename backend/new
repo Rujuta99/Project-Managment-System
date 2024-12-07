@@ -1,0 +1,576 @@
+/*import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const App = () => {
+    const [tasks, setTasks] = useState([]);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [status, setStatus] = useState('Pending');
+    const [dueDate, setDueDate] = useState('');
+    const [assignedTo, setAssignedTo] = useState('');
+    const [loading, setLoading] = useState(true); // For loading state
+    const [isSubmitting, setIsSubmitting] = useState(false); // To disable button during submission
+
+    // Fetch tasks on load
+    useEffect(() => {
+        axios.get('http://localhost:3002/tasks')
+            .then((response) => {
+                setTasks(response.data);
+                setLoading(false); // Data loaded
+            })
+            .catch((error) => {
+                console.error(error);
+                setLoading(false); // Handle errors
+            });
+    }, []);
+
+    // Handle form submission
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      setIsSubmitting(true); // Disable the button during submission
+  
+      // Log the data to check if it's being passed correctly
+      console.log("Submitting task:", { title, description, status, due_date: dueDate, assigned_to: assignedTo });
+  
+      axios.post('http://localhost:3002/tasks', {
+          title,
+          description,
+          status,
+          due_date: dueDate,
+          assigned_to: assignedTo
+      })
+      .then(() => {
+          setTitle('');
+          setDescription('');
+          setStatus('Pending');
+          setDueDate('');
+          setAssignedTo('');
+          // Refetch tasks after adding a new one
+          axios.get('http://localhost:3002/tasks')
+              .then((response) => setTasks(response.data));
+          setIsSubmitting(false); // Re-enable the button
+      })
+      .catch((error) => {
+          console.error(error);
+          setIsSubmitting(false); // Re-enable the button if error occurs
+      });
+  };
+  
+
+    // Show a loading message or the task list
+    if (loading) {
+        return <div>Loading tasks...</div>;
+    }
+
+    return (
+        <div>
+            <h1>Employee Schedule Manager</h1>
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task Title"
+                    required
+                />
+                <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Task Description"
+                    required
+                />
+                <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    required
+                />
+                <input
+                    type="text"
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    placeholder="Assigned To (User ID)"
+                    required
+                />
+                <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+                <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Adding Task...' : 'Add Task'}
+                </button>
+            </form>
+            <ul>
+                {tasks.map((task) => (
+                    <li key={task.task_id}>
+                        <strong>{task.title}</strong><br />
+                        Description: {task.description}<br />
+                        Status: {task.status}<br />
+                        Due Date: {task.due_date}<br />
+                        Assigned To: {task.assigned_to}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
+export default App;
+*/
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './App.css';
+
+const App = () => {
+    const [tasks, setTasks] = useState([]);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [status, setStatus] = useState('Pending');
+    const [dueDate, setDueDate] = useState('');
+    const [assignedTo, setAssignedTo] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [taskDependencies, setTaskDependencies] = useState({}); // Store task dependencies
+    //new 
+    const [inputValues, setInputValues] = useState({});
+
+    // Fetch tasks on load
+    useEffect(() => {
+        axios.get('http://localhost:3002/tasks')
+            .then((response) => {
+                setTasks(response.data);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error(error);
+                setLoading(false);
+            });
+    }, []);
+
+    // Handle form submission
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        axios.post('http://localhost:3002/tasks', {
+            title,
+            description,
+            status,
+            due_date: dueDate,
+            assigned_to: assignedTo
+        })
+        .then(() => {
+            setTitle('');
+            setDescription('');
+            setStatus('Pending');
+            setDueDate('');
+            setAssignedTo('');
+            axios.get('http://localhost:3002/tasks')
+                .then((response) => setTasks(response.data));
+            setIsSubmitting(false);
+        })
+        .catch((error) => {
+            console.error(error);
+            setIsSubmitting(false);
+        });
+    };
+
+    //Add task dependency
+    const addDependency = async (taskId, dependsOnTaskId) => {
+        try {
+            const response = await axios.post(`http://localhost:3002/tasks/${taskId}/dependencies`, { dependsOnTaskId });
+            alert('Dependency added successfully!');
+            fetchDependencies(taskId); // Fetch updated dependencies for the task
+            console.log(response)
+            setTaskDependencies((prev) => ({
+              ...prev,
+              [taskId]: response.data.dependencies
+          }));
+          window.location.reload();
+
+          console.log(taskDependencies)
+        } catch (error) {
+            console.error('Error adding dependency:', error);
+            alert('Error adding dependency');
+        }
+        
+    };
+
+    const deleteTask = async (taskId) => {
+      try {
+          const response = await axios.delete(`http://localhost:3002/tasks/${taskId}`);
+          alert('Task deleted successfully!');
+          window.location.reload();
+        console.log(taskDependencies)
+      } catch (error) {
+          console.error('Error adding dependency:', error);
+          alert('Error adding dependency');
+      }
+      
+  };
+
+  //   const addDependency = async (taskId, dependsOnTaskId) => {
+  //     try {
+  //         await axios.post(`http://localhost:3002/tasks/${taskId}/dependencies`, { dependsOnTaskId });
+  //         alert('Dependency added successfully!');
+  //         await fetchDependencies(taskId); // Ensure state is updated after adding dependency
+  //     } catch (error) {
+  //         console.error('Error adding dependency:', error);
+  //         alert('Error adding dependency');
+  //     }
+  // };
+  
+    // Fetch task dependencies
+    const fetchDependencies = async (taskId) => {
+        try {
+            const response = await axios.get(`http://localhost:3002/tasks/${taskId}/dependencies`);
+            setTaskDependencies((prev) => ({
+                ...prev,
+                [taskId]: response.data.dependencies
+            }));
+        } catch (error) {
+            console.error('Error fetching dependencies:', error);
+        }
+    };
+
+    // Show loading message or the task list
+    if (loading) {
+        return <div>Loading tasks...</div>;
+    }
+
+    const handleInputChange = (taskId, event) => {
+      setInputValues({
+          ...inputValues,
+          [taskId]: event.target.value
+      });
+  };
+
+  //new
+  const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+        const response = await axios.patch(`http://localhost:3002/tasks/${taskId}/status`, {
+            status: newStatus,
+        });
+        console.log('Task status updated:', response.data);
+        setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+                task.task_id === taskId ? { ...task, status: newStatus } : task
+            )
+        );
+    } catch (error) {
+        console.error('Error updating task status:', error);
+        alert('Failed to update task status. Please try again.');
+    }
+  };
+
+  return (
+    <div>
+    
+
+        <div className="centered-header">
+              <h1>Employee Task Managing System</h1>
+        </div>
+
+        {/* Task Adding Form */}
+        <form onSubmit={handleSubmit} className="task-form">
+            <div className="form-group">
+                <label htmlFor="title">Task Title</label>
+                <input
+                    id="title"
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task Title"
+                    required
+                />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="description">Task Description</label>
+                <textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Task Description"
+                    required
+                />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="dueDate">Due Date</label>
+                <input
+                    id="dueDate"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    required
+                />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="assignedTo">Assigned To (Employee ID)</label>
+                <input
+                    id="assignedTo"
+                    type="text"
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    placeholder="Employee ID"
+                    required
+                />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="status">Status</label>
+                <select
+                    id="status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding Task...' : 'Add Task'}
+            </button>
+        </form>
+
+        {/* <form onSubmit={handleSubmit}>
+            <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Task Title"
+                required
+            />
+            <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Task Description"
+                required
+            />
+            <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                required
+            />
+            <input
+                type="text"
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                placeholder="Assigned To (User ID)"
+                required
+            />
+            <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+            >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+            <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding Task...' : 'Add Task'}
+            </button>
+        </form> */}
+
+        {/* Task List Table */}
+        <h2>Task List</h2>
+        <table border="1" style={{ width: '100%', textAlign: 'left', padding: '10px' }}>
+            <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th>Assigned to EmployeeID</th>
+                    <th>Add Dependency</th>
+                    <th>Delete Task</th>
+                    <th>Dependencies</th>
+                </tr>
+            </thead>
+            <tbody>
+                {tasks.map((task) => (
+                    <tr key={task.task_id}>
+                        <td><strong>{task.task_id}</strong></td>
+                        <td><strong>{task.title}</strong></td>
+                        <td>{task.description}</td>
+                        {/* <td>{task.status}</td> */}
+                        <td>
+                            {/* Status dropdown */}
+                            <select
+                                value={task.status}
+                                onChange={(e) => updateTaskStatus(task.task_id, e.target.value)}
+                            >
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </td>
+                        <td>{task.due_date}</td>
+                        <td>{task.assigned_to}</td>
+
+                        {/* Text box for adding notes */}
+                        
+
+                        <td>
+                            {/* Input and button in the same column */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Dependency Task ID"
+                                    value={taskDependencies[task.task_id] || ''}
+                                    onChange={(e) =>
+                                        setTaskDependencies((prev) => ({
+                                            ...prev,
+                                            [task.task_id]: e.target.value,
+                                        }))
+                                    }
+                                    style={{ flex: '1', padding: '5px' }} // Optional styling
+                                />
+                                <button
+                                    onClick={() => {
+                                        const dependsOnTaskId = taskDependencies[task.task_id];
+                                        if (dependsOnTaskId) {
+                                            addDependency(task.task_id, dependsOnTaskId);
+                                        } else {
+                                            alert('Please enter a Dependency Task ID!');
+                                        }
+                                    }}
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </td>    
+                        
+                        <td>
+                            {/* Button to delete task */}
+                            <button onClick={() => deleteTask(task.task_id)}>Delete Task</button>
+                        </td>
+
+                        <td>
+                            {/* Displaying dependencies */}
+                            {task.dependencies && task.dependencies.length > 0 ? (
+                                <ul>
+                                    {task.dependencies.map((dep) => (
+                                        <li key={dep.taskId}>Depends on: {dep.title}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p>No dependencies</p>
+                            )}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
+
+
+
+
+
+
+
+    // return (
+    //     <div>
+    //         <h1>Employee Schedule Manager</h1>
+    //         <form onSubmit={handleSubmit}>
+    //             <input
+    //                 type="text"
+    //                 value={title}
+    //                 onChange={(e) => setTitle(e.target.value)}
+    //                 placeholder="Task Title"
+    //                 required
+    //             />
+    //             <textarea
+    //                 value={description}
+    //                 onChange={(e) => setDescription(e.target.value)}
+    //                 placeholder="Task Description"
+    //                 required
+    //             />
+    //             <input
+    //                 type="date"
+    //                 value={dueDate}
+    //                 onChange={(e) => setDueDate(e.target.value)}
+    //                 required
+    //             />
+    //             <input
+    //                 type="text"
+    //                 value={assignedTo}
+    //                 onChange={(e) => setAssignedTo(e.target.value)}
+    //                 placeholder="Assigned To (User ID)"
+    //                 required
+    //             />
+    //             <select
+    //                 value={status}
+    //                 onChange={(e) => setStatus(e.target.value)}
+    //             >
+    //                 <option value="Pending">Pending</option>
+    //                 <option value="In Progress">In Progress</option>
+    //                 <option value="Completed">Completed</option>
+    //             </select>
+    //             <button type="submit" disabled={isSubmitting}>
+    //                 {isSubmitting ? 'Adding Task...' : 'Add Task'}
+    //             </button>
+    //         </form>
+
+    //         <h2>Task List</h2>
+    //         <ul>
+    //             {tasks.map((task) => (
+    //                 <li key={task.task_id}>
+    //                     <strong>{task.title}</strong><br />
+    //                     Description: {task.description}<br />
+    //                     Status: {task.status}<br />
+    //                     Due Date: {task.due_date}<br />
+    //                     Assigned To: {task.assigned_to}<br />
+    //                     */
+    //                     {/* Button to add dependency */}
+    //                     /*
+                        
+    //                     <button onClick={() => addDependency(task.task_id, 17)}>Add Dependency to Task 3</button> */{/* Example hardcoded dependency */}
+    //                     <button onClick={() => deleteTask(task.task_id)}>Delete Task</button> 
+
+    //                     {/* Displaying dependencies */}
+    //                     /*
+    //                     <div>
+    //                     {task.dependencies.length > 0 ? (
+    //                           <ul>
+    //                               {task.dependencies.map((dep) => (
+    //                                   <li key={dep.taskId}>Depends on: {dep.title}</li>
+    //                               ))}
+    //                           </ul>
+    //                       ) : (
+    //                           <p>No dependencies</p>
+    //                       )}
+
+    //                         {/* {taskDependencies[task.task_id] && taskDependencies[task.task_id].length > 0 ? (
+    //                               <ul>
+    //                                   {taskDependencies[task.task_id].map((dep) => (
+    //                                       <li key={`${dep.task_id}-${dep.title}`}>Depends on: {dep.title}</li>
+    //                                   ))}
+    //                               </ul>
+    //                           ) : (
+    //                               <p>No dependencies</p>
+    //                           )} */}
+
+    //                     </div>
+    //                 </li>
+    //             ))}
+    //         </ul>
+    //     </div>
+    // );
+};
+
+export default App;
