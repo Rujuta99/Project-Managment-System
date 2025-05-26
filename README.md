@@ -33,13 +33,18 @@ git clone https://github.com/Rujuta99/Project-Managment-System.git
 cd Project-Managment-System
 
 2. **Backend Setup (Node.js + Express + MySQL + Neo4j)**
+
+```bash
 cd backend
 npm install
 node app.js
 # or
 npx nodemon app.js
 
+
 3. **Frontend Setup (React)**
+
+```bash
 Open a new terminal tab/window:
 cd frontend
 npm install
