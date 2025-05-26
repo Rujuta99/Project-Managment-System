@@ -34,7 +34,6 @@ cd Project-Managment-System
 ```
 
 2. **Backend Setup (Node.js + Express + MySQL + Neo4j)**
-Update config.js with your local DB credentials and connection strings.
 ```bash
 cd backend
 npm install
